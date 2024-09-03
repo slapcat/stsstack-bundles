@@ -1,0 +1,111 @@
+# Variables
+juju_pubkey:                &juju_pubkey               __JUJU_SSHKEY__
+juju_cacert:                &juju_cacert               __JUJU_CA_CERT__
+bastion_ip:                 &bastion_ip                __BASTION_IP__
+
+bundle: kubernetes
+applications:
+  grafana-k8s:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__grafana-k8s
+    scale: 1
+    storage:
+      database: kubernetes,1,1024M
+  hydra:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__hydra
+    channel: latest/edge
+    scale: 1
+    trust: true
+  identity-platform-login-ui-operator:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__identity-platform-login-ui-operator
+    channel: latest/edge
+    scale: 1
+    trust: true
+  kratos:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__kratos
+    channel: latest/edge
+    scale: 1
+    options:
+      dev: true
+    trust: true
+  kratos-external-idp-integrator:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__kratos-external-idp-integrator
+    channel: latest/edge
+    scale: 1
+    options:
+      client_id: 3xofwoXM4fr4tv5wpN1CBCAF2RZFZ9wtF8IqqhcO
+      client_secret: NWgpm3bR96OUvziMhJiONp3snie9KQJ4bQQqDLZ5fJs9mEWifUHtsaKwtMVu7hI3yuDDqhqYjLkS9CeIYYCsMV29zDPZq7uKtOELJfKq7zDWz4U1nQM6U80hKrZBEfwN
+      issuer_url: http://10.152.183.95/application/o/canonical/
+      provider: generic
+  oathkeeper:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__oathkeeper
+    channel: latest/edge
+    scale: 1
+    trust: true
+  postgresql-k8s:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__postgresql-k8s
+    channel: 14/stable
+    scale: 1
+    storage:
+      pgdata: kubernetes,1,1024M
+    trust: true
+  self-signed-certificates:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__self-signed-certificates
+    channel: latest/edge
+    scale: 1
+  traefik-admin:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__traefik-k8s
+    channel: latest/stable
+    scale: 1
+    storage:
+      configurations: kubernetes,1,1024M
+    trust: true
+  traefik-public:
+    charm: __CHARM_STORE____CHARM_CS_NS____CHARM_CH_PREFIX__traefik-k8s
+    channel: latest/stable
+    scale: 1
+    options:
+      enable_experimental_forward_auth: true
+    storage:
+      configurations: kubernetes,1,1024M
+    trust: true
+relations:
+- - hydra:pg-database
+  - postgresql-k8s:database
+- - kratos:pg-database
+  - postgresql-k8s:database
+- - kratos:hydra-endpoint-info
+  - hydra:hydra-endpoint-info
+- - kratos-external-idp-integrator:kratos-external-idp
+  - kratos:kratos-external-idp
+- - hydra:admin-ingress
+  - traefik-admin:ingress
+- - hydra:public-ingress
+  - traefik-public:ingress
+- - kratos:admin-ingress
+  - traefik-admin:ingress
+- - kratos:public-ingress
+  - traefik-public:ingress
+- - identity-platform-login-ui-operator:ingress
+  - traefik-public:ingress
+- - identity-platform-login-ui-operator:hydra-endpoint-info
+  - hydra:hydra-endpoint-info
+- - identity-platform-login-ui-operator:ui-endpoint-info
+  - hydra:ui-endpoint-info
+- - identity-platform-login-ui-operator:ui-endpoint-info
+  - kratos:ui-endpoint-info
+- - identity-platform-login-ui-operator:kratos-endpoint-info
+  - kratos:kratos-endpoint-info
+- - traefik-admin:certificates
+  - self-signed-certificates:certificates
+- - traefik-public:certificates
+  - self-signed-certificates:certificates
+- - grafana-k8s:ingress
+  - traefik-public:traefik-route
+- - grafana-k8s:oauth
+  - hydra:oauth
+- - grafana-k8s:receive-ca-cert
+  - self-signed-certificates:send-ca-cert
+- - oathkeeper:forward-auth
+  - traefik-public:experimental-forward-auth
+- - oathkeeper:kratos-info
+  - kratos:kratos-info

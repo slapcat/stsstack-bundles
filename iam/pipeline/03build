@@ -1,0 +1,18 @@
+#!/bin/bash
+if [ -n "${MASTER_OPTS[CLOUD_NAME]}" ]; then
+    if `juju list-clouds| egrep -q "^${MASTER_OPTS[CLOUD_NAME]}"`; then
+        echo -e "Juju cloud '${MASTER_OPTS[CLOUD_NAME]}' already exists - skipping create"
+    else
+        cloud_name=${MASTER_OPTS[CLOUD_NAME]}
+        controller=`juju list-controllers --format json | jq -r '.["current-controller"]'`
+        mkdir -p ~/.local/share/iam
+        juju scp -m ${MOD_PARAMS[__K8S_MODEL__]} kubernetes-master/0:config ~/.local/share/iam/${cloud_name}-kubeconfig
+        echo "Creating Juju cloud ${cloud_name} on controller ${controller}"
+        KUBECONFIG=~/.local/share/iam/${cloud_name}-kubeconfig juju add-k8s ${cloud_name} --controller ${controller} --cluster-name=juju-cluster
+    fi
+fi
+
+. $MOD_DIR/common/generate_bundle_base
+
+print_msgs
+
