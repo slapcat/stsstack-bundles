@@ -1,0 +1,11 @@
+applications:
+  grafana:
+    charm: grafana-k8s
+    scale: 1
+    series: focal
+    storage:
+      database: kubernetes,1,1024M
+relations:
+  - [grafana:ingress, traefik-public:traefik-route]
+  - [grafana:oauth, hydra:oauth]
+  - [grafana:receive-ca-cert, self-signed-certificates:send-ca-cert]
